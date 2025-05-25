@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.horse.jpa.mybatis.RaceInfoMapper">
+    <select id="findAll" resultType="com.example.horse.jpa.model.RaceInfo">
+        SELECT
+            *
+        FROM
+            race_info
+    </select>
+
+    <insert id="insertRace"
+            parameterType="com.example.horse.jpa.model.RaceInfo"
+            useGeneratedKeys="true"
+            keyProperty="raceId">
+        INSERT INTO race_info (race_time)
+        VALUES (NOW())
+    </insert>
+
+    <delete id="deleteAll">
+        SET FOREIGN_KEY_CHECKS = 0;
+        TRUNCATE TABLE race_info;
+        SET FOREIGN_KEY_CHECKS = 1;
+    </delete>
+</mapper>

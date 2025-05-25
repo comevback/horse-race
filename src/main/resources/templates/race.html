@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Horse Race</title>
+   <script th:src="@{/webjars/jquery/3.7.1/jquery.min.js}"></script></head>
+<body>
+
+<h3>馬を追加</h3>
+<div id="addHorseArea">
+    名前: <input type="text" id="horseName">
+    色: <input type="color" id="horseColor" value="#ff0000">
+    スピード: <input type="number" id="horseSpeed" value="100" min="1" max="10">
+    耐力: <input type="number" id="horseStamina" value="100" min="10" max="100">
+    emoji: <input type="text" id="horseEmoji" value="🐎">
+    <button onclick="addHorse()">追加</button>
+    <button onclick="resetGame()">リセット</button>
+</div>
+
+<div id="statusArea">
+    <div id="status">
+        <div>
+            <h3>登録済みの馬</h3>
+            <div class="scroll-area">
+                <ul id="horseList"></ul>
+            </div>
+        </div>
+
+        <div>
+            <h3>レース結果</h3>
+            <div class="scroll-area">
+                <ul id="raceResult"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="historyArea">
+        <div>
+            <h3>過去のレース一覧</h3>
+            <div class="scroll-area">
+                <ul id="raceList"></ul>
+            </div>
+        </div>
+        <div>
+            <h3>選択したレースの結果</h3>
+            <div class="scroll-area">
+                <ul id="raceDetail"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="raceArea">
+    <div id="raceTrack">
+        <canvas id="raceCanvas" width="1000" height="300" style="border:1px solid #000;"></canvas><br>
+        <button id="startBtn" onclick="startRace()">レース開始</button>
+        <button id="resetBtn" onclick="resetRace()">リセット</button>
+    </div>
+    <div id="bet">
+        <h3>🐎 賭け馬</h3>
+        <div id="money">所持金: 1000円</div>
+        <div id="betArea">
+            <select id="betHorseSelect">
+                <option value="">-- 馬を選ぶ --</option>
+            </select>
+            <div>
+                金額: <input type="number" id="betAmount" value="100">
+                <button id="betBtn" onclick="placeBet()">賭ける</button>
+            </div>
+        </div>
+        <div id="betResult">
+            <p id="betStatus" style="font-weight: bold;"></p>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    #addHorseArea {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    #horseEmoji,
+    #betAmount{
+        width: 50px; /* 设置 emoji 输入框的宽度 */
+    }
+
+    #addHorseArea {
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+
+    #addHorseArea input{
+        min-width: 100px; /* 设置输入框的最小宽度 */
+    }
+
+    #statusArea {
+        display: flex;
+        justify-content: start;
+        gap: 8rem;
+        align-items: flex-start;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    /* 内部两个区块并排 */
+    #status, #historyArea {
+        display: flex;
+        gap: 2rem;
+    }
+
+    /* 每个小列表块 */
+    #status > div,
+    #historyArea > div {
+        width: 300px;
+        height: 250px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+    }
+
+    h3 {
+        margin: 0;
+        padding: 0.5rem;
+        font-size: 1rem;
+        background-color: #f0f0f0;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .scroll-area {
+        flex: 1;
+        list-style: none;
+        overflow-y: auto;
+        overflow-x: auto;
+        padding: 0.5rem;
+        white-space: nowrap;
+    }
+
+    ul {
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+    }
+
+    #raceList li {
+        cursor: pointer;
+        color: deepskyblue;
+        text-decoration: underline;
+    }
+
+    #raceArea {
+        display: flex;
+        align-content: start;
+        justify-content: start;
+        gap: 3rem;
+    }
+
+    #bet {
+        height: 300px;
+        min-width: 350px;
+        max-width: 350px;
+        display: flex;
+        overflow-y: auto;
+        overflow-x: auto;
+        flex-direction: column;
+        border: 1px solid #ccc;
+        gap: 0.5rem;
+        border-radius: 5px;
+    }
+
+    #betArea {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+        justify-content: center;
+        padding: 5px;
+    }
+
+    #money {
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+
+    #betResult {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        font-weight: bold;
+        font-size: 1.8rem;
+        word-wrap: anywhere;
+    }
+</style>
+
+<script>
+    // 在 script 区域开始处添加
+    let horses = [];
+    var HORSE_PATH = "/horse";
+    const resultList = document.getElementById("raceResult");
+    let currentRaceId = null;
+    const startBtn = document.getElementById("startBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const canvas = document.getElementById("raceCanvas");
+    const ctx = canvas.getContext("2d");
+    let currentBet = null;
+    let balance = 1000; // 初始金额
+
+    // 页面加载时从服务器获取马匹
+    $(document).ready(function() {
+       $.ajax({
+            url: HORSE_PATH + '/race/horses',
+            type: 'GET',
+            success: function(data) {
+                console.log('成功获取数据:', data);
+                horses = data;
+                resetHorsePositions();
+                updateHorseList();
+                drawTrack();
+                loadRaceList();
+                updateResultListBeforeRace();
+            },
+            error: function(error) {
+                console.error('获取数据失败:', error);
+            }
+       });
+    });
+
+    function hexToRgb(hex) {
+        // 去掉 # 号
+        hex = hex.replace(/^#/, '');
+        if (hex.length === 3) {
+            hex = hex.split('').map(c => c + c).join('');
+        }
+        const bigint = parseInt(hex, 16);
+        return {
+            r: (bigint >> 16) & 255,
+            g: (bigint >> 8) & 255,
+            b: bigint & 255
+        };
+    }
+
+    function updateBalanceDisplay() {
+        document.getElementById("money").textContent = `所持金: ${balance}円`;
+    }
+
+    function updateResultListBeforeRace() {
+        resultList.innerHTML = "";
+        horses.forEach((h, i) => {
+            const li = document.createElement("li");
+            li.textContent = `${i + 1}位: ${h.emoji} ${h.horseName}（- 秒）`;
+            resultList.appendChild(li);
+        });
+    }
+
+
+    // 修改 addHorse 函数
+    function addHorse() {
+        const horseName = $('#horseName').val();
+        const color = $('#horseColor').val();
+        const speed = parseInt($('#horseSpeed').val(), 10);
+        const stamina = parseInt($('#horseStamina').val(), 10);
+        const emoji = $('#horseEmoji').val();
+
+        if (!horseName) {
+            alert("名前を入力してください");
+            return;
+        }
+
+        // 向服务器保存新马匹
+        $.ajax({
+            url: HORSE_PATH + '/race/horses',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ horseName: horseName, color: color, speed: speed, stamina: stamina, emoji: emoji}),
+            success: function(data) {
+                // 重新获取列表
+                $.ajax({
+                    url: HORSE_PATH + '/race/horses',
+                    type: 'GET',
+                    success: function(data) {
+                        horses = data;
+                        resetRace();
+                        updateHorseList();
+                        console.log("✅ 已重新加载所有马匹");
+                    }
+                });
+            },
+            error: function(error) {
+                console.error('保存马匹失败:', error);
+            }
+        });
+    }
+
+    // 修改删除马匹的逻辑
+    function deleteHorse(id) {
+        console.log("删除马匹 ID:", id);
+        $.ajax({
+            url: HORSE_PATH + `/race/horses/delete/${id}`,
+            type: 'POST',
+            success: function() {
+                horses = horses.filter(h => h.horseId !== id);
+                resetRace();
+                // 更新马匹列表
+                updateHorseList();
+                console.log("马匹列表已更新");
+            },
+            error: function(error) {
+                console.error('删除马匹失败:', error);
+            }
+        });
+    }
+
+    // 修改 updateHorseList 函数
+    function updateHorseList() {
+        const list = document.getElementById("horseList");
+        list.innerHTML = "";
+        horses.forEach((h) => {
+            const li = document.createElement("li");
+
+            // 创建删除按钮并放在最前面
+            const delBtn = document.createElement("button");
+            delBtn.textContent = "❌";
+            delBtn.onclick = () => deleteHorse(h.horseId);
+            delBtn.style.marginRight = "10px"; // 添加右侧间距
+
+            // 先添加按钮，再添加文本
+            li.appendChild(delBtn);
+
+            // 创建文本节点并添加
+            const textNode = document.createTextNode(
+                `${h.emoji} ${h.horseId} ${h.horseName} (速度:${h.speed}, 耐力:${h.stamina})`
+            );
+            li.appendChild(textNode);
+            list.appendChild(li);
+        });
+        updateBetHorseOptions();
+    }
+
+    function updateBetHorseOptions() {
+        const select = document.getElementById("betHorseSelect");
+        select.innerHTML = '<option value="">-- 馬を選ぶ --</option>';
+        horses.forEach(h => {
+            const opt = document.createElement("option");
+            opt.value = h.horseId;
+            opt.textContent = `${h.emoji || "🐎"} ${h.horseName}`;
+            select.appendChild(opt);
+        });
+    }
+
+    function placeBet() {
+        const horseId = parseInt($('#betHorseSelect').val());
+        const amount = parseInt($('#betAmount').val());
+        const horse = horses.find(h => h.horseId === horseId);
+
+        if (!horseId || !horse || amount <= 0) {
+            $('#betStatus').text("⚠️ 馬と金額を正しく入力してください");
+            return;
+        }
+
+        if (amount > balance) {
+            $('#betStatus').text(`⚠️ 所持金が足りません。現在 ${balance}円`);
+            return;
+        }
+
+        // 扣除金额
+        balance -= amount;
+        updateBalanceDisplay();
+
+        currentBet = {
+            horseId: horse.horseId,
+            horseName: horse.horseName,
+            emoji: horse.emoji,
+            amount: amount
+        };
+
+        $('#betStatus').text(`🎯 ${horse.emoji || "🐎"} ${horse.horseName} に ${amount}円 を賭けました`);
+        document.getElementById("betBtn").disabled = true;
+    }
+
+    function drawTrack() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 画终点线
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(canvas.width - 20, 0);
+        ctx.lineTo(canvas.width - 20, canvas.height);
+        ctx.stroke();
+
+        // 拖尾渐细，并且轨迹会在一段时间内消失
+        horses.forEach(horse => {
+            const maxTrail = 30; // 最多保留 30 个轨迹点
+            if (horse.path.length > maxTrail) {
+                horse.path = horse.path.slice(horse.path.length - maxTrail); // 只保留最新 30 个
+            }
+
+            const len = horse.path.length;
+            for (let i = 0; i < len; i++) {
+                const p = horse.path[i];
+
+                // 越靠近现在，越大越不透明
+                const progress = (i + 1) / len;  // 0.0 ~ 1.0
+                const radius = 3 * progress;     // 半径逐渐变小
+                const alpha = progress.toFixed(2); // 透明度增加
+
+                const rgb = hexToRgb(horse.color || "#888888");
+                ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+
+                ctx.beginPath();
+                ctx.arc(p.x + 15, p.y + 15, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 🐴 绘制马本体和名字
+            ctx.font = "28px serif";
+            ctx.fillText(horse.emoji || "🐎", horse.x, horse.y + 20);
+            ctx.font = "14px Arial";
+            ctx.fillStyle = horse.color;
+            ctx.fillText(horse.horseName, horse.x, horse.y - 5);
+        });
+    }
+
+    function loadRaceList() {
+        $.ajax({
+            url: HORSE_PATH + '/race/list',
+            type: 'GET',
+            success: function(races) {
+                const raceList = document.getElementById("raceList");
+                raceList.innerHTML = "";
+                races.forEach(r => {
+                    const li = document.createElement("li");
+                    li.textContent = `Race ${r.raceId} - ${new Date(r.raceTime).toLocaleString()}`;
+                    li.onclick = () => loadRaceDetail(r.raceId);
+                    raceList.appendChild(li);
+                });
+            },
+            error: function(err) {
+                console.error("❌ 获取比赛列表失败:", err);
+            }
+        });
+    }
+
+    function loadRaceDetail(raceId) {
+        $.ajax({
+            url: HORSE_PATH + `/race/results/${raceId}`,
+            type: 'GET',
+            success: function(results) {
+                const raceDetail = document.getElementById("raceDetail");
+                raceDetail.innerHTML = "";
+                results
+                    .sort((a, b) => a.horseRank - b.horseRank)
+                    .forEach(r => {
+                        const li = document.createElement("li");
+                        li.textContent = `${r.horseRank}位: ${r.emoji} ${r.horseName}（${r.finishTime} 秒）`;
+                        raceDetail.appendChild(li);
+                    });
+            },
+            error: function(err) {
+                console.error("❌ 获取比赛结果失败:", err);
+            }
+        });
+    }
+
+    function resetHorsePositions() {
+        startBtn.disabled = false;
+        const totalHorses = horses.length;
+        const padding = 20;
+        const trackHeight = canvas.height - padding * 2;
+        const spacing = trackHeight / totalHorses;
+
+        horses.forEach((h, i) => {
+            h.x = 0;
+            h.y = padding + i * spacing;
+            h.finished = false;
+            h.finishTime = null;
+            h.path = []; // 🌈 初始化轨迹数组
+        });
+    }
+
+
+    function resetRace() {
+        resetHorsePositions();
+        drawTrack();
+    }
+
+    function startRace() {
+        // 如果开始按钮被禁用，则不执行比赛
+        if (startBtn.disabled) return;
+
+        // 按了开始按钮后，禁用重置按钮和开始按钮以及下注按钮
+        startBtn.disabled = true;
+        resetBtn.disabled = true;
+        document.getElementById("betBtn").disabled = true; // 禁用下注按钮
+
+        // 第一步：先向后端注册比赛，获取 raceId
+        $.ajax({
+            url: HORSE_PATH + '/race',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({}),  // 空对象即可，因为 race_time 有默认值
+            success: function(raceId) {
+                console.log("✅ 比赛创建成功 ID:", raceId);
+                currentRaceId = raceId;
+                runRace();
+            },
+            error: function(err) {
+                console.error("❌ 比赛创建失败:", err);
+            }
+        });
+    }
+
+    function runRace() {
+        let frameCount = 0;
+
+        horses.forEach(h => {
+            const base = h.speed * 0.1 + h.stamina * 0.01;
+            const randomness = Math.random() * 0.5 + 0.5;
+            h.speed = base * randomness; // 基础值乘随机因子
+            h.finished = false;
+            h.finishTime = null;
+        });
+
+        function animate() {
+            frameCount++;
+            horses.forEach(h => {
+                if (!h.finished) {
+                    // 🏃 正在比赛中
+                    h.speed += (Math.random() - 0.5) * 0.3;
+                    h.speed = Math.max(0.5, Math.min(h.speed, 2.5));
+                    h.x += h.speed;
+
+                    if (frameCount % 2 === 0) {
+                        h.path.push({ x: h.x, y: h.y });
+                    }
+
+                    if (h.x + 50 >= canvas.width) {
+                        h.finished = true;
+                        h.finishTime = frameCount;
+                    }
+                } else {
+                    // 💤 到达终点后，轨迹开始慢慢消失
+                    if (h.path.length > 0 && frameCount % 2 === 0) {
+                        h.path.shift();
+                    }
+                }
+            });
+
+            drawTrack();
+
+            const results = [...horses].sort((a, b) => {
+                if (a.finished && b.finished) return a.finishTime - b.finishTime;
+                if (a.finished) return -1;
+                if (b.finished) return 1;
+                return b.x - a.x;
+            });
+
+            let resultHTML = "";
+            results.forEach((h, i) => {
+                const time = h.finished ? (h.finishTime / 60).toFixed(2) : (frameCount / 60).toFixed(2);
+                resultHTML += `<li>${i + 1}位: ${h.emoji} ${h.horseName}（${time} 秒）${h.finished ? '✅' : ''}</li>`;
+            });
+            resultList.innerHTML = resultHTML;
+
+            // 赌马
+            if (horses.every(h => h.finished) && currentBet) {
+                const winner = results[0];
+                const win = winner.horseId === currentBet.horseId;
+
+                if (win) {
+                    // 倍率为参加马的数量
+                    const totalHorses = horses.length;
+                    const prize = currentBet.amount * totalHorses;
+                    balance += prize;
+                    $('#betStatus').text(`🎉 的中！${currentBet.emoji || "🐎"} ${currentBet.horseName} が 1位！ 賞金は ${prize}円 です！`);
+                } else {
+                    $('#betStatus').text(`😢 はずれ... 1位は ${winner.emoji || "🐎"} ${winner.horseName}`);
+                }
+
+                // 更新余额显示
+                updateBalanceDisplay();
+                currentBet = null; // 清除本次下注
+            }
+
+            // ✅ 所有马都冲线后，打包并发送成绩
+            if (horses.every(h => h.finished)) {
+                resetBtn.disabled = false;
+                document.getElementById("betBtn").disabled = false;
+
+                const resultPayload = results.map((h, i) => ({
+                    raceId: currentRaceId,
+                    horseId: h.horseId,
+                    emoji: h.emoji,
+                    horseName: h.horseName,
+                    finishTime: (h.finishTime / 60).toFixed(2),
+                    horseRank: i + 1
+                }));
+
+                $.ajax({
+                    url: HORSE_PATH + "/race/results",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(resultPayload),
+                    success: () => {console.log("✅ 成绩已保存");
+                        loadRaceList();
+                        // updateResultListBeforeRace();
+                    },
+                    error: (e) => console.error("❌ 保存成绩失败", e)
+                });
+            } else {
+                requestAnimationFrame(animate);
+            }
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    // 调用后端的删除比赛和结果接口，删除所有记录
+    function resetGame() {
+        $.ajax({
+            url: HORSE_PATH + '/race/delete',
+            type: 'POST',
+            success: function() {
+                console.log("✅ 游戏已重置");
+                loadRaceList();
+                loadRaceDetail(0);
+            },
+            error: function(error) {
+                console.error('重置游戏失败:', error);
+            }
+        })
+    }
+
+    // 初回表示
+    resetHorsePositions();
+    updateHorseList();
+    drawTrack();
+</script>
+
+</body>
+</html>

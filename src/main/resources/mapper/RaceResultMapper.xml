@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.horse.jpa.mybatis.RaceResultMapper">
+    <select id="findByRaceId" resultType="com.example.horse.jpa.model.RaceResult">
+        SELECT
+            horse_rank,
+            finish_time,
+            horse_name,
+            emoji
+        FROM
+            race_result
+        WHERE
+            race_id = #{raceId}
+    </select>
+
+    <select id="findByHorseId" resultType="com.example.horse.jpa.model.RaceResult">
+        SELECT
+            *
+        FROM
+            race_result
+        WHERE
+            horse_id = #{horseId}
+    </select>
+
+    <select id="findByRaceIdAndHorseId" resultType="com.example.horse.jpa.model.RaceResult">
+        SELECT
+            *
+        FROM
+            race_result
+        WHERE
+            horse_id = #{horseId} AND　race_id = #{raceId}
+    </select>
+
+    <insert id="insertResult" parameterType="com.example.horse.jpa.model.RaceResult">
+        INSERT INTO reace_result
+            ( race_id, horse_id, horse_rank, finish_time, horse_name, emoji )
+        VALUES
+            (
+                #{raceId},
+                #{horseId},
+                #{horseRank},
+                #{finishTime},
+                #{horseName},
+                #{emoji}
+            )
+    </insert>
+
+    <insert id="insertBatchResults" parameterType="list">
+        INSERT INTO race_result (race_id, horse_id, finish_time, horse_rank, horse_name, emoji)
+        VALUES
+        <foreach collection="list" item="r" separator=",">
+            (#{r.raceId}, #{r.horseId}, #{r.finishTime}, #{r.horseRank}, #{r.horseName}, #{r.emoji})
+        </foreach>
+    </insert>
+
+    <delete id="deleteAll">
+        TRUNCATE TABLE race_result;
+    </delete>
+</mapper>

@@ -1,0 +1,26 @@
+spring.datasource:
+  url: jdbc:mysql://localhost:3306/test?characterEncoding=utf8&allowMultiQueries=true&allowPublicKeyRetrieval=true
+  driverClassName: com.mysql.cj.jdbc.Driver
+  username: xuxiang
+  password: b#002393
+
+mybatis:
+  configuration.cache-enabled: true
+  configuration.default-statement-timeout: 3000
+  configuration.map-underscore-to-camel-case: true
+  configuration.use-generated-keys: true
+  type-handlers-package: com.example.horse.jpa.mybatis
+  mapper-locations: mapper/*.xml
+
+# ウェブサーバ関連
+server:
+  port: 8080
+  error:
+    path: error
+  servlet:
+    context-path: /horse
+
+spring:
+  web:
+    resources:
+      static-locations: classpath:/static/, classpath:/public/, classpath:/assets/

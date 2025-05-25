@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.horse.jpa.mybatis.HorseInfoMapper">
+
+    <resultMap id="HorseInfoMap" type="com.example.horse.jpa.model.HorseInfo">
+        <id     property="horseId"    column="horse_id" />
+        <result property="horseName"  column="horse_name" />
+        <result property="color"      column="color" />
+        <result property="speed"      column="speed" />
+        <result property="stamina"    column="stamina" />
+    </resultMap>
+
+    <select id="findAll" resultType="com.example.horse.jpa.model.HorseInfo" >
+        SELECT
+            *
+        FROM
+            horse_info
+    </select>
+
+    <select id="findById" resultType="com.example.horse.jpa.model.HorseInfo">
+        SELECT
+            *
+        FROM
+            horse_info
+        WHERE
+            horse_id = #{horseId}
+    </select>
+
+    <insert id="insert" parameterType="com.example.horse.jpa.model.HorseInfo">
+        INSERT INTO horse_info
+            (horse_name, color, speed, stamina, emoji)
+        VALUES
+            (#{horseName}, #{color}, #{speed}, #{stamina}, #{emoji})
+    </insert>
+
+    <update id="update" parameterType="com.example.horse.jpa.model.HorseInfo">
+        UPDATE horse_info
+        SET
+            horse_name = #{horseName},
+            color = #{color},
+            speed = #{speed},
+            stamina = #{stamina}
+        WHERE
+            horse_id = #{horseId}
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM horse_info
+        WHERE
+            horse_id = #{horseId}
+    </delete>
+
+    <delete id="deleteAll">
+        TRUNCATE TABLE horse_info;
+    </delete>
+
+</mapper>
