@@ -22,7 +22,7 @@ public class HorseInfoDto {
     private String color;
 
     @NotBlank
-    @Size (min = 1, max = 10)
+    @Size (min = 1)
     private int speed;
 
     @NotBlank
