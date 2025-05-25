@@ -32,7 +32,7 @@
     </select>
 
     <insert id="insertResult" parameterType="com.example.horse.jpa.model.RaceResult">
-        INSERT INTO reace_result
+        INSERT INTO race_result
             ( race_id, horse_id, horse_rank, finish_time, horse_name, emoji )
         VALUES
             (
