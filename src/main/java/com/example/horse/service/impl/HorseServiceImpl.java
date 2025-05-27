@@ -36,7 +36,7 @@ public class HorseServiceImpl implements HorseService {
         if (horseInfo != null) {
             horseInfoMapper.delete(id);
         } else {
-            throw new IllegalArgumentException("Horse with ID " + id + " does not exist.");
+            throw new IllegalArgumentException("Horse " + id + " does not exist.");
         }
     }
 }

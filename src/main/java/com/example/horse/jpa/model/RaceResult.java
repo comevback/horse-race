@@ -2,8 +2,8 @@ package com.example.horse.jpa.model;
 
 import lombok.Data;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Id;
+import javax.persistence.Column;
+import javax.persistence.Id;
 
 @Data
 public class RaceResult {
